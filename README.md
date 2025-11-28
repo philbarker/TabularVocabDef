@@ -1,11 +1,11 @@
-csv2rdf: Creates an RDF/S (+just enough OWL) vocabulary definition file based on a CSV file.
+tvd2rdf: Creates an RDF/S (+just enough OWL) vocabulary definition file based on a CSV file (Tabular Vocabulary Definition).
 
 ## Installation
 Best use a virtual environment.
 
 ```
-$ git clone https://github.com/philbarker/VocabDef.git
-$ cd VocabDef
+$ git clone https://github.com/philbarker/TabularVocabDef.git
+$ cd TabularVocabDef
 ```
 [create and activate a virtual environment]
 ```
@@ -20,9 +20,9 @@ To install dependencies used in development only:
 
 ## Usage: 
 ```
-$ csv2rdf [-h] [-ns <namespace filename>] [-of <output format>] [-v] <terms filename> [<output file>]
+$ tvd2rdf [-h] [-ns <namespace filename>] [-of <output format>] [-v] <terms filename> [<output file>]
 
-Reads term defitions from a CSV file, and converts them to RDF.
+Reads term defitions from a CSV file with certain column headings, and converts them to RDF.
 
 positional arguments:
   <terms filename>

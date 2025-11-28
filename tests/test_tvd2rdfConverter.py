@@ -1,5 +1,5 @@
 import pytest
-from csv2rdf import csv2rdfConverter
+from tvd2rdf import tvd2rdfConverter
 from rdflib import Graph, URIRef, Literal
 from rdflib import DCTERMS, OWL, RDF, RDFS, SDO, SKOS, XSD
 from rdflib import compare
@@ -13,19 +13,19 @@ skos_output_fn = "tests/data/concepts.ttl"
 
 @pytest.fixture(scope="function")
 def test_Converter():
-    converter = csv2rdfConverter()
+    converter = tvd2rdfConverter()
     return converter
 
 
 @pytest.fixture(scope="module")
 def rdfs_Converter():
-    converter = csv2rdfConverter()
+    converter = tvd2rdfConverter()
     return converter
 
 
 @pytest.fixture(scope="module")
 def skos_converter():
-    converter = csv2rdfConverter()
+    converter = tvd2rdfConverter()
     return converter
 
 
