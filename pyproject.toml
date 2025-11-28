@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-version = {attr = "csv2rdf._version.__version__"}
+version = {attr = "tvd2rdf._version.__version__"}
 
 # pyproject.toml
 [tool.pytest.ini_options]
@@ -14,7 +14,7 @@ testpaths = [
 filterwarnings = 'ignore:Cannot convert column'
 
 [project]
-name = "csv2rdf"
+name = "tvd2rdf"
 dynamic = ["version"]
 description = "Creates an RDF/S (+just enough OWL) vocabulary definition file based on a CSV file."
 readme = "README.md"
@@ -44,4 +44,4 @@ dev = [
 ]
 
 [project.scripts]
-csv2rdf = "csv2rdf.__main__:main"
+tvd2rdf = "tvd2rdf.__main__:main"
