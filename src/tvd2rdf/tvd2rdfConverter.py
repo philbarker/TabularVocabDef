@@ -4,6 +4,7 @@ from rdflib import RDF, RDFS, OWL, SDO, SKOS, DCTERMS
 from re import split
 from warnings import warn
 from otsrdflib import OrderedTurtleSerializer
+from urllib.parse import quote_plus
 from ._version import __version__ as version
 
 known_keys = [
@@ -183,8 +184,10 @@ class tvd2rdfConverter:
         else:
             msg = f"Prefix {prefix} does not correspond to a known namespace."
             raise ValueError(msg)
+        # clean the name for URI use
+        clean_name = quote_plus(name.strip())
         # then add the term URI to the graph
-        term = URIRef(ns_uriref + name.strip())
+        term = URIRef(ns_uriref + clean_name)
         return term
 
     def _process_owl_row(self, r: dict, term: URIRef):

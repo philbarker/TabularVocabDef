@@ -97,6 +97,9 @@ def test_process_term(test_Converter):
     cURI = "ex:test"
     termRef = c.process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#test")
+    cURI = "ex:test/try"
+    termRef = c.process_term(cURI)
+    assert termRef == URIRef("https://example.org/terms#test%2Ftry")
     cURI = "ex:"
     termRef = c.process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#")
