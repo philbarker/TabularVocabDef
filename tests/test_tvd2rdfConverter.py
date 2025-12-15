@@ -43,11 +43,11 @@ def test_read_namespaces(test_Converter):
 
 def test_process_type(test_Converter):
     c = test_Converter
-    assert c.process_type("Concept") == SKOS.Concept
-    assert c.process_type("Property") == RDF.Property
-    assert c.process_type("Class") == RDFS.Class
+    assert c._process_type("Concept") == SKOS.Concept
+    assert c._process_type("Property") == RDF.Property
+    assert c._process_type("Class") == RDFS.Class
     with pytest.raises(ValueError) as e:
-        c.process_type("Wrong")
+        c._process_type("Wrong")
     assert str(e.value) == "Unknown term type Wrong."
 
 

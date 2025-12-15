@@ -140,8 +140,8 @@ class tvd2rdfConverter:
 
     def convert_row(self, r: dict):
         vg = self.vocab_rdf
-        type = self.process_type(r["Type"].strip())
-        term = self.process_term(r["URI"].strip())
+        type = self._process_type(r["Type"].strip())
+        term = self._process_term(r["URI"].strip())
         vg.add((term, RDF.type, type))
         if type == OWL.Ontology:
             self._process_owl_row(r, term)
@@ -159,14 +159,14 @@ class tvd2rdfConverter:
             raise TypeError(msg)
         return
 
-    def process_type(self, type_str):
+    def _process_type(self, type_str):
         if type_str in known_types.keys():
             return known_types[type_str]
         else:
             msg = f"Unknown term type {type_str}."
             raise ValueError(msg)
 
-    def process_term(self, cURI):
+    def _process_term(self, cURI):
         try:
             (prefix, name) = cURI.split(":")
         except:
@@ -231,13 +231,13 @@ class tvd2rdfConverter:
             domainList = r["Domain Includes"].strip()
             for domain_str in split(splitters, domainList):
                 if domain_str.strip() != "":
-                    domain = self.process_term(domain_str.strip())
+                    domain = self._process_term(domain_str.strip())
                     vg.add((term, SDO.domainIncludes, domain))
         if ("Range Includes" in r.keys()) and ((r["Range Includes"].strip() != "")):
             rangeList = r["Range Includes"].strip()
             for range_str in split(splitters, rangeList):
                 if range_str.strip() != "":
-                    range = self.process_term(range_str.strip())
+                    range = self._process_term(range_str.strip())
                     vg.add((term, SDO.rangeIncludes, range))
         return
 
@@ -284,7 +284,7 @@ class tvd2rdfConverter:
         for r in split(splitters, rel):
             r = r.strip()
             if r in known_relationships.keys():
-                rel_termRef = self.process_term(rel_term)
+                rel_termRef = self._process_term(rel_term)
                 relRef = known_relationships[r]
                 vg.add((termRef, relRef, rel_termRef))
             else:
