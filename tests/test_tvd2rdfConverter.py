@@ -95,18 +95,22 @@ def test_process_term(test_Converter):
     c = test_Converter
     c.add_namespace("ex", "https://example.org/terms#")
     cURI = "ex:test"
-    termRef = c.process_term(cURI)
+    termRef = c._process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#test")
     cURI = "ex:test/try"
-    termRef = c.process_term(cURI)
+    termRef = c._process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#test%2Ftry")
     cURI = "ex:"
-    termRef = c.process_term(cURI)
+    termRef = c._process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#")
     cURI = "ex"
     with pytest.raises(ValueError) as e:
-        termRef = c.process_term(cURI)
+        termRef = c._process_term(cURI)
     assert str(e.value) == "ex does not seem to be a curie."
+    cURI = "p:createdDateTime"
+    with pytest.raises(ValueError) as e:
+        termRef = c._process_term(cURI)
+    assert str(e.value) == "Prefix p does not correspond to a known namespace."
 
 
 def test_process_related_terms(test_Converter):
@@ -148,10 +152,6 @@ def test_convert_row_rdfs(test_Converter):
     c = test_Converter
     c.add_namespace("ex", "https://example.org/terms#")
     c.add_namespace("xsd", "http://www.w3.org/2001/XMLSchema#")
-    row = {"Type": "Property", "URI": "p:createdDateTime"}
-    with pytest.raises(ValueError) as e:
-        c.convert_row(row)
-    assert str(e.value) == "Prefix p does not correspond to a known namespace."
     row = {
         "Type": "Property",
         "URI": "ex:createdDateTime",
@@ -181,6 +181,10 @@ def test_convert_row_rdfs(test_Converter):
     assert ((dtRef, SDO.domainIncludes, DocRef)) in c.vocab_rdf
     assert ((dtRef, SDO.domainIncludes, FileRef)) in c.vocab_rdf
     assert ((dtRef, SDO.rangeIncludes, XSD.dateTime)) in c.vocab_rdf
+    row = {"Type": "Property", "URI": "p:createdDateTime"}
+    with pytest.warns(UserWarning, match="Could not process p:createdDateTime."):
+        c.convert_row(row) 
+
 
 
 def test_convert_row_skos(test_Converter):

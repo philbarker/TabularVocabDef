@@ -140,9 +140,20 @@ class tvd2rdfConverter:
 
     def convert_row(self, r: dict):
         vg = self.vocab_rdf
-        type = self._process_type(r["Type"].strip())
-        term = self._process_term(r["URI"].strip())
-        vg.add((term, RDF.type, type))
+        try:
+            term = self._process_term(r["URI"].strip())
+        except ValueError as e:
+            msg = f"Could not process {r["URI"]}."
+            print(msg)
+            print(e)
+            warn(msg)
+            return
+        try:
+            type = self._process_type(r["Type"].strip())
+            vg.add((term, RDF.type, type))
+        except ValueError as e:
+            print(f"Could not process {term}.")
+            print(e)
         if type == OWL.Ontology:
             self._process_owl_row(r, term)
         elif type == RDFS.Class:
