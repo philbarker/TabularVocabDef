@@ -76,7 +76,13 @@ class tvd2rdfConverter:
             csv_reader = DictReader(csv_file)
             self.check_keys(csv_reader.fieldnames)
             for row in csv_reader:
-                self.convert_row(row)
+                try:
+                    self.convert_row(row)
+                except ValueError as e:
+                    msg = f"Cannot convert row {row}."
+                    print(msg)
+                    print(e)
+                    warn(msg)
         return
 
     def read_namespaces(self, fname):
@@ -135,6 +141,7 @@ class tvd2rdfConverter:
                 pass
             else:
                 msg = f"Cannot convert column {f} to RDF term."
+                print(msg)
                 warn(msg, stacklevel=2)
         return True
 
@@ -142,8 +149,8 @@ class tvd2rdfConverter:
         vg = self.vocab_rdf
         try:
             term = self._process_term(r["URI"].strip())
-        except ValueError as e:
-            msg = f"Could not process {r["URI"]}."
+        except Exception as e:
+            msg = f"Could not process {r["URI"]} as a term URI."
             print(msg)
             print(e)
             warn(msg)
@@ -154,6 +161,8 @@ class tvd2rdfConverter:
         except ValueError as e:
             print(f"Could not process {term}.")
             print(e)
+            warn(e)
+            return
         if type == OWL.Ontology:
             self._process_owl_row(r, term)
         elif type == RDFS.Class:

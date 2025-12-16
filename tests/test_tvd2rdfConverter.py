@@ -235,7 +235,8 @@ def test_convert_row_skos(test_Converter):
 def test_read_csv(rdfs_Converter):
     c = rdfs_Converter
     c.read_namespaces(namespaces_fn)
-    c.read_csv(input_csv_fn)
+    with pytest.warns(UserWarning, match="Could not process None as a term URI."):
+        c.read_csv(input_csv_fn)
     ontRef = URIRef("https://example.org/terms#")
     assert ((ontRef, RDF.type, OWL.Ontology)) in c.vocab_rdf
     assert ((ontRef, RDFS.label, Literal("Test Terms"))) in c.vocab_rdf
