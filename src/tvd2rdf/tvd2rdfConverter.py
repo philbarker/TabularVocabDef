@@ -21,7 +21,7 @@ known_fields = [
     "relationship",  # maps to predicate of a relationship statement
 ]
 
-known_types = {
+types_map = {
     "Property": RDF.Property,
     "Class": RDFS.Class,
     "Ontology": OWL.Ontology,
@@ -29,7 +29,7 @@ known_types = {
     "Concept": SKOS.Concept,
 }
 
-known_relationships = {
+relationships_map = {
     "hasTopConcept": SKOS.hasTopConcept,
     "topConceptOf": SKOS.topConceptOf,
     "inScheme": SKOS.inScheme,
@@ -206,8 +206,8 @@ class tvd2rdfConverter:
         return
 
     def _process_type(self, type_str):
-        if type_str in known_types.keys():
-            return known_types[type_str]
+        if type_str in types_map.keys():
+            return types_map[type_str]
         else:
             msg = f"Unknown term type {type_str}."
             raise ValueError(msg)
@@ -329,9 +329,9 @@ class tvd2rdfConverter:
             raise ValueError(msg)
         for r in split(splitters, rel):
             r = r.strip()
-            if r in known_relationships.keys():
+            if r in relationships_map.keys():
                 rel_termRef = self._process_term(rel_term)
-                relRef = known_relationships[r]
+                relRef = relationships_map[r]
                 vg.add((termRef, relRef, rel_termRef))
             else:
                 msg = f"Cannot process relationship {r}"
