@@ -6,65 +6,14 @@ from warnings import warn
 from otsrdflib import OrderedTurtleSerializer
 from urllib.parse import quote_plus
 from ._version import __version__ as version
-
-known_fields = [
-    "type",  # maps to rdfs:type,
-    "uri",  # maps to URIRef
-    "label",  # maps to rdfs:label
-    "comment",  # maps to rdfs:comment
-    "usageNote",  # maps to skos:usageNote
-    "domainIncludes",  # maps to sdo.domainIncludes
-    "rangeIncludes",  # maps to sdo.rangeIncludes
-    "definition",  # maps to skos:definition
-    "notation",  # maps to skos:notation
-    "relatedTerm",  # maps to object of a relationship statement
-    "relationship",  # maps to predicate of a relationship statement
-]
-
-types_map = {
-    "Property": RDF.Property,
-    "Class": RDFS.Class,
-    "Ontology": OWL.Ontology,
-    "Concept Scheme": SKOS.ConceptScheme,
-    "Concept": SKOS.Concept,
-}
-
-relationships_map = {
-    "hasTopConcept": SKOS.hasTopConcept,
-    "topConceptOf": SKOS.topConceptOf,
-    "inScheme": SKOS.inScheme,
-    "broader": SKOS.broader,
-    "narrower": SKOS.narrower,
-    "broadMatch": SKOS.broadMatch,
-    "narrowMatch": SKOS.narrowMatch,
-}
-
-splitters = ",\n|;\n|\n|,|;"  # chars used to separate multiple entries in a cell.
-
-serialization_order = [
-    OWL.Ontology,
-    RDFS.Class,
-    RDF.Property,
-    SKOS.ConceptScheme,
-    SKOS.Concept,
-]
-
-
-def toLowerCamelCase(s):
-    """Converts a string to lowerCamelCase."""
-    # convert to a list
-    l = s.replace("_", " ").replace("-", " ").split(" ")
-    # convert inital letter of first word to lc but leave anything that is already in CamelCase
-    word1 = l[0]
-    if word1 == word1.upper():
-        r = word1.lower()  # don't camel case words that are all UC, e.g. URL
-    else:
-        r = word1[0].lower() + word1[1:]
-    # convert inital letters of the rest to UC but leave anything that is alread in CamelCase
-    for word in l[1:]:
-        t = word[0].capitalize() + word[1:].lower()
-        r = r + t
-    return r
+from .utils import toLowerCamelCase
+from .consts import (
+    known_fields,
+    types_map,
+    relationships_map,
+    splitters,
+    serialization_order,
+)
 
 
 class tvd2rdfConverter:
