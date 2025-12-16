@@ -1,5 +1,5 @@
 import pytest
-from tvd2rdf import tvd2rdfConverter
+from tvd2rdf import tvd2rdfConverter, toLowerCamelCase
 from rdflib import Graph, URIRef, Literal
 from rdflib import DCTERMS, OWL, RDF, RDFS, SDO, SKOS, XSD
 from rdflib import compare
@@ -29,6 +29,20 @@ def skos_converter():
     return converter
 
 
+def test_toLowerCamelCase():
+    assert toLowerCamelCase("URL") == "url"
+    for ri in [
+        "rangeIncludes",
+        "Range includes",
+        "Range-Includes",
+        "range_includes",
+        "Range_Includes",
+        "range includes",
+        "RANGE_INCLUDES",
+    ]:
+        assert toLowerCamelCase(ri) == "rangeIncludes"
+
+
 def test_init(test_Converter):
     c = test_Converter
     g = Graph()
@@ -56,12 +70,23 @@ def test_check_keys(test_Converter):
 
     keys = [
         "Type",  # maps to rdfs:type,
-        "URI",  # maps to URIRef
+        "uri",  # maps to URIRef
         "Label",  # maps to rdfs:label
         "Comment",  # maps to rdfs:comment
         "Usage Note",  # maps to skos:usageNote
-        "Domain Includes",  # maps to sdo.domainIncludes
-        "Range Includes",  # maps to sdo.rangeIncludes
+        "domainIncludes",  # maps to sdo.domainIncludes
+        "Range_includes",  # maps to sdo.rangeIncludes
+    ]
+    assert c.check_keys(keys)
+
+    keys = [
+        "Type",  # maps to rdfs:type,
+        "uri",  # maps to URIRef
+        "Label",  # maps to rdfs:label
+        "Comment",  # maps to rdfs:comment
+        "Usage Note",  # maps to skos:usageNote
+        "DomainIncludes",  # maps to sdo.domainIncludes
+        "Range_includes",  # maps to sdo.rangeIncludes
         "Wrong un",
     ]
     with pytest.warns(UserWarning, match="Cannot convert column Wrong un to RDF term."):
@@ -85,7 +110,7 @@ def test_check_keys(test_Converter):
         "Label",
         "Definition",
         "Notation",
-        "Related term",
+        "RelatedTerm",
         "Relationship",
     ]
     assert c.check_keys(keys)
@@ -183,8 +208,7 @@ def test_convert_row_rdfs(test_Converter):
     assert ((dtRef, SDO.rangeIncludes, XSD.dateTime)) in c.vocab_rdf
     row = {"Type": "Property", "URI": "p:createdDateTime"}
     with pytest.warns(UserWarning, match="Could not process p:createdDateTime."):
-        c.convert_row(row) 
-
+        c.convert_row(row)
 
 
 def test_convert_row_skos(test_Converter):
