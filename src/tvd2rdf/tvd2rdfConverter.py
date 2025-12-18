@@ -46,7 +46,6 @@ class tvd2rdfConverter:
                     self.convert_row(row)
                 except ValueError as e:
                     msg = f"Cannot convert row {row}."
-                    print(msg)
                     print(e)
                     warn(msg)
         return
@@ -111,7 +110,6 @@ class tvd2rdfConverter:
             else:
                 msg = f"Cannot convert column {f} to RDF term."
                 print(field)
-                print(msg)
                 warn(msg, stacklevel=2)
                 return False
         return True
@@ -126,7 +124,6 @@ class tvd2rdfConverter:
             term = self._process_term(r["uri"].strip())
         except Exception as e:
             msg = f"Could not process {r["uri"]} as a term URI."
-            print(msg)
             print(e)
             warn(msg)
             return
@@ -134,9 +131,9 @@ class tvd2rdfConverter:
             type = self._process_type(r["type"].strip())
             vg.add((term, RDF.type, type))
         except ValueError as e:
-            print(f"Could not process {term}.")
             print(e)
-            warn(e)
+            msg = f"Could not process {term}."
+            warn(msg)
             return
         if type == OWL.Ontology:
             self._process_owl_row(r, term)
@@ -284,5 +281,4 @@ class tvd2rdfConverter:
                 vg.add((termRef, relRef, rel_termRef))
             else:
                 msg = f"Cannot process relationship {termRef}, {r}, {rel_term}."
-                print(msg)
                 warn(msg)
