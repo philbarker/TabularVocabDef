@@ -1,5 +1,5 @@
 import pytest
-from tvd2rdf import tvd2rdfConverter, toLowerCamelCase
+from tvd2rdf import tvd2rdfConverter
 from rdflib import Graph, URIRef, Literal
 from rdflib import DCTERMS, OWL, RDF, RDFS, SDO, SKOS, XSD
 from rdflib import compare
@@ -27,20 +27,6 @@ def rdfs_Converter():
 def skos_converter():
     converter = tvd2rdfConverter()
     return converter
-
-
-def test_toLowerCamelCase():
-    assert toLowerCamelCase("URL") == "url"
-    for ri in [
-        "rangeIncludes",
-        "Range includes",
-        "Range-Includes",
-        "range_includes",
-        "Range_Includes",
-        "range includes",
-        "RANGE_INCLUDES",
-    ]:
-        assert toLowerCamelCase(ri) == "rangeIncludes"
 
 
 def test_init(test_Converter):
@@ -141,6 +127,7 @@ def test_process_term(test_Converter):
 def test_process_related_terms(test_Converter):
     c = test_Converter
     c.add_namespace("ex", "https://example.org/terms#")
+    # adding a simple relationship
     relationship = "hasTopConcept"
     rel_term = "ex:red"
     termRef = URIRef("https://example.org/terms#")
@@ -153,6 +140,7 @@ def test_process_related_terms(test_Converter):
             URIRef("https://example.org/terms#red"),
         )
     ) in c.vocab_rdf
+    # adding two relationships
     relationship = "inScheme,topConceptOf"
     rel_term = "ex:"
     termRef = URIRef("https://example.org/terms#red")
@@ -171,6 +159,29 @@ def test_process_related_terms(test_Converter):
             URIRef("https://example.org/terms#"),
         )
     ) in c.vocab_rdf
+    # adding where relationship is not in camelCase
+    relationship = "Broad Match"
+    rel_term = "ex:red"
+    termRef = URIRef("https://example.org/terms#Vermillion")
+    vg = c.vocab_rdf
+    c._process_related_terms(relationship, rel_term, termRef)
+    assert (
+        (
+            URIRef("https://example.org/terms#Vermillion"),
+            SKOS.broadMatch,
+            URIRef("https://example.org/terms#red"),
+        )
+    ) in c.vocab_rdf
+    # trying to add an unknown relationship
+    relationship = "Unknown"
+    rel_term = "ex:red"
+    termRef = URIRef("https://example.org/terms#Vermillion")
+    vg = c.vocab_rdf
+    with pytest.warns(
+        UserWarning,
+        match="Cannot process relationship https://example.org/terms#Vermillion, unknown, ex:red.",
+    ):
+        c._process_related_terms(relationship, rel_term, termRef)
 
 
 def test_convert_row_rdfs(test_Converter):

@@ -1,7 +1,7 @@
 def toLowerCamelCase(s):
     """Converts a string to lowerCamelCase."""
     # convert to a list
-    l = s.replace("_", " ").replace("-", " ").split(" ")
+    l = s.strip().replace("_", " ").replace("-", " ").split(" ")
     # convert inital letter of first word to lc but leave anything that is already in CamelCase
     word1 = l[0]
     if word1 == word1.upper():

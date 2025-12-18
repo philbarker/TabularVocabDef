@@ -272,16 +272,17 @@ class tvd2rdfConverter:
         vg = self.vocab_rdf
         try:
             rel_term = rel_term.strip()
-            rel = relationship.strip()
+            rels = relationship.strip()
         except:
             msg = f"Must have stringvalues for both term and relationship. Have term = {rel_term} and relationsip = {relationship}."
             raise ValueError(msg)
-        for r in split(splitters, rel):
-            r = r.strip()
+        for rel in split(splitters, rels):
+            r = toLowerCamelCase(rel)
             if r in relationships_map.keys():
                 rel_termRef = self._process_term(rel_term)
                 relRef = relationships_map[r]
                 vg.add((termRef, relRef, rel_termRef))
             else:
-                msg = f"Cannot process relationship {r}"
-                raise ValueError(msg)
+                msg = f"Cannot process relationship {termRef}, {r}, {rel_term}."
+                print(msg)
+                warn(msg)
