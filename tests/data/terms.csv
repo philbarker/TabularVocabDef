@@ -6,3 +6,4 @@ Property,ex:description,Description,A short account of the resource.,,,,
 Property,ex:author,Author,The organization or person who created the document.,,"ex:Document
 ex:File","sdo:Person
 sdo:Organization",
+test:wrongUn

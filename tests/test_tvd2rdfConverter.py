@@ -43,11 +43,11 @@ def test_read_namespaces(test_Converter):
 
 def test_process_type(test_Converter):
     c = test_Converter
-    assert c.process_type("Concept") == SKOS.Concept
-    assert c.process_type("Property") == RDF.Property
-    assert c.process_type("Class") == RDFS.Class
+    assert c._process_type("Concept") == SKOS.Concept
+    assert c._process_type("Property") == RDF.Property
+    assert c._process_type("Class") == RDFS.Class
     with pytest.raises(ValueError) as e:
-        c.process_type("Wrong")
+        c._process_type("Wrong")
     assert str(e.value) == "Unknown term type Wrong."
 
 
@@ -56,12 +56,23 @@ def test_check_keys(test_Converter):
 
     keys = [
         "Type",  # maps to rdfs:type,
-        "URI",  # maps to URIRef
+        "uri",  # maps to URIRef
         "Label",  # maps to rdfs:label
         "Comment",  # maps to rdfs:comment
         "Usage Note",  # maps to skos:usageNote
-        "Domain Includes",  # maps to sdo.domainIncludes
-        "Range Includes",  # maps to sdo.rangeIncludes
+        "domainIncludes",  # maps to sdo.domainIncludes
+        "Range_includes",  # maps to sdo.rangeIncludes
+    ]
+    assert c.check_keys(keys)
+
+    keys = [
+        "Type",  # maps to rdfs:type,
+        "uri",  # maps to URIRef
+        "Label",  # maps to rdfs:label
+        "Comment",  # maps to rdfs:comment
+        "Usage Note",  # maps to skos:usageNote
+        "DomainIncludes",  # maps to sdo.domainIncludes
+        "Range_includes",  # maps to sdo.rangeIncludes
         "Wrong un",
     ]
     with pytest.warns(UserWarning, match="Cannot convert column Wrong un to RDF term."):
@@ -85,7 +96,7 @@ def test_check_keys(test_Converter):
         "Label",
         "Definition",
         "Notation",
-        "Related term",
+        "RelatedTerm",
         "Relationship",
     ]
     assert c.check_keys(keys)
@@ -95,23 +106,28 @@ def test_process_term(test_Converter):
     c = test_Converter
     c.add_namespace("ex", "https://example.org/terms#")
     cURI = "ex:test"
-    termRef = c.process_term(cURI)
+    termRef = c._process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#test")
     cURI = "ex:test/try"
-    termRef = c.process_term(cURI)
+    termRef = c._process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#test%2Ftry")
     cURI = "ex:"
-    termRef = c.process_term(cURI)
+    termRef = c._process_term(cURI)
     assert termRef == URIRef("https://example.org/terms#")
     cURI = "ex"
     with pytest.raises(ValueError) as e:
-        termRef = c.process_term(cURI)
+        termRef = c._process_term(cURI)
     assert str(e.value) == "ex does not seem to be a curie."
+    cURI = "p:createdDateTime"
+    with pytest.raises(ValueError) as e:
+        termRef = c._process_term(cURI)
+    assert str(e.value) == "Prefix p does not correspond to a known namespace."
 
 
 def test_process_related_terms(test_Converter):
     c = test_Converter
     c.add_namespace("ex", "https://example.org/terms#")
+    # adding a simple relationship
     relationship = "hasTopConcept"
     rel_term = "ex:red"
     termRef = URIRef("https://example.org/terms#")
@@ -124,6 +140,7 @@ def test_process_related_terms(test_Converter):
             URIRef("https://example.org/terms#red"),
         )
     ) in c.vocab_rdf
+    # adding two relationships
     relationship = "inScheme,topConceptOf"
     rel_term = "ex:"
     termRef = URIRef("https://example.org/terms#red")
@@ -142,16 +159,35 @@ def test_process_related_terms(test_Converter):
             URIRef("https://example.org/terms#"),
         )
     ) in c.vocab_rdf
+    # adding where relationship is not in camelCase
+    relationship = "Broad Match"
+    rel_term = "ex:red"
+    termRef = URIRef("https://example.org/terms#Vermillion")
+    vg = c.vocab_rdf
+    c._process_related_terms(relationship, rel_term, termRef)
+    assert (
+        (
+            URIRef("https://example.org/terms#Vermillion"),
+            SKOS.broadMatch,
+            URIRef("https://example.org/terms#red"),
+        )
+    ) in c.vocab_rdf
+    # trying to add an unknown relationship
+    relationship = "Unknown"
+    rel_term = "ex:red"
+    termRef = URIRef("https://example.org/terms#Vermillion")
+    vg = c.vocab_rdf
+    with pytest.warns(
+        UserWarning,
+        match="Cannot process relationship https://example.org/terms#Vermillion, unknown, ex:red.",
+    ):
+        c._process_related_terms(relationship, rel_term, termRef)
 
 
 def test_convert_row_rdfs(test_Converter):
     c = test_Converter
     c.add_namespace("ex", "https://example.org/terms#")
     c.add_namespace("xsd", "http://www.w3.org/2001/XMLSchema#")
-    row = {"Type": "Property", "URI": "p:createdDateTime"}
-    with pytest.raises(ValueError) as e:
-        c.convert_row(row)
-    assert str(e.value) == "Prefix p does not correspond to a known namespace."
     row = {
         "Type": "Property",
         "URI": "ex:createdDateTime",
@@ -181,6 +217,9 @@ def test_convert_row_rdfs(test_Converter):
     assert ((dtRef, SDO.domainIncludes, DocRef)) in c.vocab_rdf
     assert ((dtRef, SDO.domainIncludes, FileRef)) in c.vocab_rdf
     assert ((dtRef, SDO.rangeIncludes, XSD.dateTime)) in c.vocab_rdf
+    row = {"Type": "Property", "URI": "p:createdDateTime"}
+    with pytest.warns(UserWarning, match="Could not process p:createdDateTime."):
+        c.convert_row(row)
 
 
 def test_convert_row_skos(test_Converter):
@@ -231,7 +270,8 @@ def test_convert_row_skos(test_Converter):
 def test_read_csv(rdfs_Converter):
     c = rdfs_Converter
     c.read_namespaces(namespaces_fn)
-    c.read_csv(input_csv_fn)
+    with pytest.warns(UserWarning, match="Could not process None as a term URI."):
+        c.read_csv(input_csv_fn)
     ontRef = URIRef("https://example.org/terms#")
     assert ((ontRef, RDF.type, OWL.Ontology)) in c.vocab_rdf
     assert ((ontRef, RDFS.label, Literal("Test Terms"))) in c.vocab_rdf

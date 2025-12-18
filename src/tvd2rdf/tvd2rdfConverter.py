@@ -6,48 +6,14 @@ from warnings import warn
 from otsrdflib import OrderedTurtleSerializer
 from urllib.parse import quote_plus
 from ._version import __version__ as version
-
-known_keys = [
-    "Type",  # maps to rdfs:type,
-    "URI",  # maps to URIRef
-    "Label",  # maps to rdfs:label
-    "Comment",  # maps to rdfs:comment
-    "Usage Note",  # maps to skos:usageNote
-    "Domain Includes",  # maps to sdo.domainIncludes
-    "Range Includes",  # maps to sdo.rangeIncludes
-    "Definition",  # maps to skos:definition
-    "Notation",  # maps to skos:notation
-    "Related term",  # maps to object of a relationship statement
-    "Relationship",  # maps to predicate of a relationship statement
-]
-
-known_types = {
-    "Property": RDF.Property,
-    "Class": RDFS.Class,
-    "Ontology": OWL.Ontology,
-    "Concept Scheme": SKOS.ConceptScheme,
-    "Concept": SKOS.Concept,
-}
-
-known_relationships = {
-    "hasTopConcept": SKOS.hasTopConcept,
-    "topConceptOf": SKOS.topConceptOf,
-    "inScheme": SKOS.inScheme,
-    "broader": SKOS.broader,
-    "narrower": SKOS.narrower,
-    "broadMatch": SKOS.broadMatch,
-    "narrowMatch": SKOS.narrowMatch,
-}
-
-splitters = ",\n|;\n|\n|,|;"  # chars used to separate multiple entries in a cell.
-
-serialization_order = [
-    OWL.Ontology,
-    RDFS.Class,
-    RDF.Property,
-    SKOS.ConceptScheme,
-    SKOS.Concept,
-]
+from .utils import toLowerCamelCase
+from .consts import (
+    known_fields,
+    types_map,
+    relationships_map,
+    splitters,
+    serialization_order,
+)
 
 
 class tvd2rdfConverter:
@@ -76,7 +42,12 @@ class tvd2rdfConverter:
             csv_reader = DictReader(csv_file)
             self.check_keys(csv_reader.fieldnames)
             for row in csv_reader:
-                self.convert_row(row)
+                try:
+                    self.convert_row(row)
+                except ValueError as e:
+                    msg = f"Cannot convert row {row}."
+                    print(e)
+                    warn(msg)
         return
 
     def read_namespaces(self, fname):
@@ -125,24 +96,45 @@ class tvd2rdfConverter:
             print("\n\n")
 
     def check_keys(self, fields):
-        if ("URI" in fields) and ("Type" in fields):
+        lower_fields = [f.lower() for f in fields]
+        if ("uri" in lower_fields) and ("type" in lower_fields):
             pass
         else:
             msg = f"Must have columns for Type and URI in the input csv."
             raise ValueError(msg)
+            return False
         for f in fields:
-            if f in known_keys:
+            field = toLowerCamelCase(f)
+            if field in known_fields:
                 pass
             else:
                 msg = f"Cannot convert column {f} to RDF term."
+                print(field)
                 warn(msg, stacklevel=2)
+                return False
         return True
 
-    def convert_row(self, r: dict):
+    def convert_row(self, row: dict):
         vg = self.vocab_rdf
-        type = self.process_type(r["Type"].strip())
-        term = self.process_term(r["URI"].strip())
-        vg.add((term, RDF.type, type))
+        r = dict()
+        for key, val in row.items():
+            new_key = toLowerCamelCase(key)
+            r[new_key] = val
+        try:
+            term = self._process_term(r["uri"].strip())
+        except Exception as e:
+            msg = f"Could not process {r["uri"]} as a term URI."
+            print(e)
+            warn(msg)
+            return
+        try:
+            type = self._process_type(r["type"].strip())
+            vg.add((term, RDF.type, type))
+        except ValueError as e:
+            print(e)
+            msg = f"Could not process {term}."
+            warn(msg)
+            return
         if type == OWL.Ontology:
             self._process_owl_row(r, term)
         elif type == RDFS.Class:
@@ -159,14 +151,14 @@ class tvd2rdfConverter:
             raise TypeError(msg)
         return
 
-    def process_type(self, type_str):
-        if type_str in known_types.keys():
-            return known_types[type_str]
+    def _process_type(self, type_str):
+        if type_str in types_map.keys():
+            return types_map[type_str]
         else:
             msg = f"Unknown term type {type_str}."
             raise ValueError(msg)
 
-    def process_term(self, cURI):
+    def _process_term(self, cURI):
         try:
             (prefix, name) = cURI.split(":")
         except:
@@ -192,101 +184,101 @@ class tvd2rdfConverter:
 
     def _process_owl_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
-        if ("Label" in r.keys()) and (r["Label"].strip() != ""):
-            label = r["Label"].strip()
+        if ("label" in r.keys()) and (r["label"].strip() != ""):
+            label = r["label"].strip()
             vg.add((term, RDFS.label, Literal(label)))
-        if ("Comment" in r.keys()) and (r["Comment"].strip() != ""):
-            comment = r["Comment"].strip()
+        if ("comment" in r.keys()) and (r["comment"].strip() != ""):
+            comment = r["comment"].strip()
             vg.add((term, RDFS.comment, Literal(comment)))
-        if ("Usage Note" in r.keys()) and (r["Usage Note"].strip() != ""):
-            usage = r["Usage Note"].strip()
+        if ("usageNote" in r.keys()) and (r["usageNote"].strip() != ""):
+            usage = r["usageNote"].strip()
             vg.add((term, SKOS.note, Literal(usage)))
         return
 
     def _process_rdfs_class_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
-        if ("Label" in r.keys()) and (r["Label"].strip() != ""):
-            label = r["Label"].strip()
+        if ("label" in r.keys()) and (r["label"].strip() != ""):
+            label = r["label"].strip()
             vg.add((term, RDFS.label, Literal(label)))
-        if ("Comment" in r.keys()) and (r["Comment"].strip() != ""):
-            comment = r["Comment"].strip()
+        if ("comment" in r.keys()) and (r["comment"].strip() != ""):
+            comment = r["comment"].strip()
             vg.add((term, RDFS.comment, Literal(comment)))
-        if ("Usage Note" in r.keys()) and (r["Usage Note"].strip() != ""):
-            usage = r["Usage Note"].strip()
+        if ("usageNote" in r.keys()) and (r["usageNote"].strip() != ""):
+            usage = r["usageNote"].strip()
             vg.add((term, SKOS.note, Literal(usage)))
         return
 
     def _process_rdfs_property_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
-        if ("Label" in r.keys()) and (r["Label"].strip() != ""):
-            label = r["Label"].strip()
+        if ("label" in r.keys()) and (r["label"].strip() != ""):
+            label = r["label"].strip()
             vg.add((term, RDFS.label, Literal(label)))
-        if ("Comment" in r.keys()) and (r["Comment"].strip() != ""):
-            comment = r["Comment"].strip()
+        if ("comment" in r.keys()) and (r["comment"].strip() != ""):
+            comment = r["comment"].strip()
             vg.add((term, RDFS.comment, Literal(comment)))
-        if ("Usage Note" in r.keys()) and (r["Usage Note"].strip() != ""):
-            usage = r["Usage Note"].strip()
+        if ("usageNote" in r.keys()) and (r["usageNote"].strip() != ""):
+            usage = r["usageNote"].strip()
             vg.add((term, SKOS.note, Literal(usage)))
-        if ("Domain Includes" in r.keys()) and (r["Domain Includes"].strip() != ""):
-            domainList = r["Domain Includes"].strip()
+        if ("domainIncludes" in r.keys()) and (r["domainIncludes"].strip() != ""):
+            domainList = r["domainIncludes"].strip()
             for domain_str in split(splitters, domainList):
                 if domain_str.strip() != "":
-                    domain = self.process_term(domain_str.strip())
+                    domain = self._process_term(domain_str.strip())
                     vg.add((term, SDO.domainIncludes, domain))
-        if ("Range Includes" in r.keys()) and ((r["Range Includes"].strip() != "")):
-            rangeList = r["Range Includes"].strip()
+        if ("rangeIncludes" in r.keys()) and ((r["rangeIncludes"].strip() != "")):
+            rangeList = r["rangeIncludes"].strip()
             for range_str in split(splitters, rangeList):
                 if range_str.strip() != "":
-                    range = self.process_term(range_str.strip())
+                    range = self._process_term(range_str.strip())
                     vg.add((term, SDO.rangeIncludes, range))
         return
 
     def _process_scheme_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
-        if ("Label" in r.keys()) and (r["Label"].strip() != ""):
-            label = r["Label"].strip()
+        if ("label" in r.keys()) and (r["label"].strip() != ""):
+            label = r["label"].strip()
             vg.add((term, DCTERMS.title, Literal(label)))
-        if ("Definition" in r.keys()) and (r["Definition"].strip() != ""):
-            definition = r["Definition"].strip()
+        if ("definition" in r.keys()) and (r["definition"].strip() != ""):
+            definition = r["definition"].strip()
             vg.add((term, DCTERMS.description, Literal(definition)))
-        if ("Usage Note" in r.keys()) and (r["Usage Note"].strip() != ""):
-            usage = r["Usage Note"].strip()
+        if ("usageNote" in r.keys()) and (r["usageNote"].strip() != ""):
+            usage = r["usageNote"].strip()
             vg.add((term, SKOS.note, Literal(usage)))
-        if (("Related term") in r.keys()) and (r["Related term"].strip() != ""):
-            for related in split(splitters, r["Related term"].strip()):
-                self._process_related_terms(r["Relationship"], related.strip(), term)
+        if (("relatedTerm") in r.keys()) and (r["relatedTerm"].strip() != ""):
+            for related in split(splitters, r["relatedTerm"].strip()):
+                self._process_related_terms(r["relationship"], related.strip(), term)
         return
 
     def _process_concept_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
-        if ("Label" in r.keys()) and (r["Label"].strip() != ""):
-            label = r["Label"].strip()
+        if ("label" in r.keys()) and (r["label"].strip() != ""):
+            label = r["label"].strip()
             vg.add((term, SKOS.prefLabel, Literal(label)))
-        if ("Definition" in r.keys()) and (r["Definition"].strip() != ""):
-            definition = r["Definition"].strip()
+        if ("definition" in r.keys()) and (r["definition"].strip() != ""):
+            definition = r["definition"].strip()
             vg.add((term, SKOS.definition, Literal(definition)))
-        if ("Notation" in r.keys()) and (r["Notation"].strip() != ""):
-            notation = r["Notation"].strip()
+        if ("notation" in r.keys()) and (r["notation"].strip() != ""):
+            notation = r["notation"].strip()
             vg.add((term, SKOS.notation, Literal(notation)))
-        if (("Related term") in r.keys()) and (r["Related term"].strip() != ""):
-            for related in split(splitters, r["Related term"].strip()):
-                self._process_related_terms(r["Relationship"], related.strip(), term)
+        if (("relatedTerm") in r.keys()) and (r["relatedTerm"].strip() != ""):
+            for related in split(splitters, r["relatedTerm"].strip()):
+                self._process_related_terms(r["relationship"], related.strip(), term)
         return
 
     def _process_related_terms(self, relationship: str, rel_term: str, termRef: URIRef):
         vg = self.vocab_rdf
         try:
             rel_term = rel_term.strip()
-            rel = relationship.strip()
+            rels = relationship.strip()
         except:
             msg = f"Must have stringvalues for both term and relationship. Have term = {rel_term} and relationsip = {relationship}."
             raise ValueError(msg)
-        for r in split(splitters, rel):
-            r = r.strip()
-            if r in known_relationships.keys():
-                rel_termRef = self.process_term(rel_term)
-                relRef = known_relationships[r]
+        for rel in split(splitters, rels):
+            r = toLowerCamelCase(rel)
+            if r in relationships_map.keys():
+                rel_termRef = self._process_term(rel_term)
+                relRef = relationships_map[r]
                 vg.add((termRef, relRef, rel_termRef))
             else:
-                msg = f"Cannot process relationship {r}"
-                raise ValueError(msg)
+                msg = f"Cannot process relationship {termRef}, {r}, {rel_term}."
+                warn(msg)
