@@ -30,6 +30,7 @@ relationships_map = {
     "narrower": SKOS.narrower,
     "broadMatch": SKOS.broadMatch,
     "narrowMatch": SKOS.narrowMatch,
+    "closeMatch": SKOS.closeMatch,
 }
 
 splitters = ",\n|;\n|\n|,|;"  # chars used to separate multiple entries in a cell.
