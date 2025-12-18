@@ -17,6 +17,7 @@
 "Concept","pescCreditLevels:TechnicalPreparatory","Technical Preparatory","Tech Prep credit","TechnicalPreparatory","pescCreditLevels:","inScheme, topConceptOf"
 "Concept","pescCreditLevels:Undergraduate","Undergraduate","Undergraduate LowerDivision associated with first/second year","Undergraduate","pescCreditLevels:","inScheme, topConceptOf"
 Concept,pescCreditLevels:Undergraduate,,,,ceds:NI001304117105,closeMatch
+Concept,ceds:NI001304117105,,,Undergraduate,,
 "Concept","pescCreditLevels:Ungraded","Ungraded","Ungraded","Ungraded","pescCreditLevels:","inScheme, topConceptOf"
 "Concept","pescCreditLevels:UpperDivision","Upper Division","Higher or upper division credit (associated with third or fourth year)","UpperDivision","pescCreditLevels:","inScheme, topConceptOf"
 "Concept","pescCreditLevels:Vocational","Vocational","Vocational/technical credit","Vocational","pescCreditLevels:","inScheme, topConceptOf"
