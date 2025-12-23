@@ -11,7 +11,7 @@ skos_csv_fn = "tests/data/concepts.csv"
 skos_output_fn = "tests/data/concepts.ttl"
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def test_Converter():
     converter = tvd2rdfConverter()
     return converter
@@ -29,10 +29,44 @@ def skos_converter():
     return converter
 
 
+def test_add_namespace(test_Converter):
+    c = test_Converter
+    c.add_namespace("skos", "http://www.w3.org/2004/02/skos/core#")
+    assert c.namespaces["skos"] == "http://www.w3.org/2004/02/skos/core#"
+
+
+def test_add_type(test_Converter):
+    c = test_Converter
+    c.add_namespace("skos", "http://www.w3.org/2004/02/skos/core#")
+    c.add_type("Collection", "skos:Collection")
+    assert c.types_map["Collection"] == SKOS.Collection
+
+
+def test_add_relationship(test_Converter):
+    c = test_Converter
+    c.add_namespace("skos", "http://www.w3.org/2004/02/skos/core#")
+    c.add_relationship("BT", "skos:narrower")
+    assert c.relationships_map["BT"] == SKOS.narrower
+
+
+def test_add_field(test_Converter):
+    c = test_Converter
+    c.add_namespace("skos", "http://www.w3.org/2004/02/skos/core#")
+    c.add_field("concepts","pref label", "skos:prefLabel")
+    assert c.fields_map["concepts"]["prefLabel"] == SKOS.prefLabel
+    c.add_field("concepts","alt label", "skos:altLabel")
+    assert c.fields_map["concepts"]["altLabel"] == SKOS.altLabel
+    assert "prefLabel" in c.known_fields
+
+
 def test_init(test_Converter):
     c = test_Converter
     g = Graph()
     assert c.vocab_rdf.serialize() == g.serialize()
+    assert c.splitters == ",\n|;\n|\n|,|;"
+    assert c.namespaces["rdf"] == "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    assert c.types_map["Class"] == RDFS.Class
+    assert c.relationships_map["broader"] == SKOS.broader
 
 
 def test_read_namespaces(test_Converter):
@@ -59,10 +93,11 @@ def test_check_keys(test_Converter):
         "uri",  # maps to URIRef
         "Label",  # maps to rdfs:label
         "Comment",  # maps to rdfs:comment
-        "Usage Note",  # maps to skos:usageNote
+        "Usage",  # maps to skos:scopeNote
         "domainIncludes",  # maps to sdo.domainIncludes
         "Range_includes",  # maps to sdo.rangeIncludes
     ]
+    print(c.known_fields)
     assert c.check_keys(keys)
 
     keys = [
@@ -70,7 +105,7 @@ def test_check_keys(test_Converter):
         "uri",  # maps to URIRef
         "Label",  # maps to rdfs:label
         "Comment",  # maps to rdfs:comment
-        "Usage Note",  # maps to skos:usageNote
+        "Usage",  # maps to skos:scopeNote
         "DomainIncludes",  # maps to sdo.domainIncludes
         "Range_includes",  # maps to sdo.rangeIncludes
         "Wrong un",

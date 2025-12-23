@@ -6,14 +6,7 @@ from warnings import warn
 from otsrdflib import OrderedTurtleSerializer
 from urllib.parse import quote_plus
 from ._version import __version__ as version
-from .utils import toLowerCamelCase
-from .consts import (
-    known_fields,
-    types_map,
-    relationships_map,
-    splitters,
-    serialization_order,
-)
+from ._utils import toLowerCamelCase, load_config, convert_namespace, str2URIRef
 
 
 class tvd2rdfConverter:
@@ -21,20 +14,72 @@ class tvd2rdfConverter:
 
     def __init__(self):
         self.vocab_rdf = Graph()
+        config = load_config()
+        self._init_namespaces(config["namespaces"])
+        self._init_types_map(config["types map"])
+        self._init_relationships_map(config["relationships map"])
+        self.splitters = config["splitters"]
+        self._init_fields_map(config["fields map"])
+
+    def _init_namespaces(self, namespaces: dict):
         self.namespaces = dict()
+        for ns in namespaces.keys():
+            self.add_namespace(ns, namespaces[ns])
+        return
+
+    def _init_types_map(self, types_map):
+        self.types_map = dict()
+        for t in types_map.keys():
+            self.add_type(t, types_map[t])
+
+    def _init_relationships_map(self, relationships_map):
+        self.relationships_map = dict()
+        for r in relationships_map.keys():
+            self.add_relationship(r, relationships_map[r])
+
+    def _init_fields_map(self, fields_map):
+        self.fields_map = dict()
+        self.known_fields = list()
+        for d in fields_map.keys():
+            for f in fields_map[d].keys():
+                self.add_field(d, f, fields_map[d][f])
+
+    def _init_serialization_order(self, order):
+        self.serialization_order = list()
+        for c in order:
+            classURI = str2URIRef(c)
+            self.serialization_order.append(c)
 
     def add_namespace(self, prefix, uri):
-        if (type(prefix) == str) and (type(uri) == str):
-            if (len(prefix) == 0) or prefix == ":":
-                prefix = "default"
-            elif (prefix[-1]) == ":":
-                prefix = prefix[:-1]
-            else:
-                prefix = prefix
-            self.namespaces[prefix] = uri
+        ns = convert_namespace(prefix, uri)
+        self.namespaces.update(ns)
+        return
+
+    def add_type(self, t, uri_str):
+        """Add a mapping of a type to a URIRef to the types map attribute"""
+        uri = str2URIRef(self.namespaces, uri_str)
+        self.types_map.update({t: uri})
+        return
+
+    def add_relationship(self, r, uri_str):
+        uri = str2URIRef(self.namespaces, uri_str)
+        self.relationships_map.update({r: uri})
+        return
+
+    def add_field(self, domain, field, uri_str):
+        uri = str2URIRef(self.namespaces, uri_str)
+        d = toLowerCamelCase(domain)
+        f = toLowerCamelCase(field)
+        if d in self.fields_map.keys():
+            pass
         else:
-            msg = "Both prefix and URI must be strings."
-            raise TypeError(msg)
+            v = dict()
+            self.fields_map.update({d: v})
+        self.fields_map[d].update({f: uri})
+        if f not in self.known_fields:
+            self.known_fields.append(f)
+        else:
+            pass
         return
 
     def read_csv(self, fname):
@@ -84,7 +129,7 @@ class tvd2rdfConverter:
             f.close()
             if fmt == "turtle":  # Ordered serializaion...
                 serializer = OrderedTurtleSerializer(vg)
-                serializer.class_order = serialization_order
+                serializer.class_order = self.serialization_order
                 with open(fn, "ab") as f:
                     serializer.serialize(f)
             else:
@@ -105,7 +150,7 @@ class tvd2rdfConverter:
             return False
         for f in fields:
             field = toLowerCamelCase(f)
-            if field in known_fields:
+            if field in self.known_fields:
                 pass
             else:
                 msg = f"Cannot convert column {f} to RDF term."
@@ -152,8 +197,8 @@ class tvd2rdfConverter:
         return
 
     def _process_type(self, type_str):
-        if type_str in types_map.keys():
-            return types_map[type_str]
+        if type_str in self.types_map.keys():
+            return self.types_map[type_str]
         else:
             msg = f"Unknown term type {type_str}."
             raise ValueError(msg)
@@ -210,6 +255,7 @@ class tvd2rdfConverter:
 
     def _process_rdfs_property_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
+        splitters = self.splitters
         if ("label" in r.keys()) and (r["label"].strip() != ""):
             label = r["label"].strip()
             vg.add((term, RDFS.label, Literal(label)))
@@ -235,6 +281,7 @@ class tvd2rdfConverter:
 
     def _process_scheme_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
+        splitters = self.splitters
         if ("label" in r.keys()) and (r["label"].strip() != ""):
             label = r["label"].strip()
             vg.add((term, DCTERMS.title, Literal(label)))
@@ -251,6 +298,7 @@ class tvd2rdfConverter:
 
     def _process_concept_row(self, r: dict, term: URIRef):
         vg = self.vocab_rdf
+        splitters = self.splitters
         if ("label" in r.keys()) and (r["label"].strip() != ""):
             label = r["label"].strip()
             vg.add((term, SKOS.prefLabel, Literal(label)))
@@ -267,6 +315,7 @@ class tvd2rdfConverter:
 
     def _process_related_terms(self, relationship: str, rel_term: str, termRef: URIRef):
         vg = self.vocab_rdf
+        splitters = self.splitters
         try:
             rel_term = rel_term.strip()
             rels = relationship.strip()
@@ -275,9 +324,9 @@ class tvd2rdfConverter:
             raise ValueError(msg)
         for rel in split(splitters, rels):
             r = toLowerCamelCase(rel)
-            if r in relationships_map.keys():
+            if r in self.relationships_map.keys():
                 rel_termRef = self._process_term(rel_term)
-                relRef = relationships_map[r]
+                relRef = self.relationships_map[r]
                 vg.add((termRef, relRef, rel_termRef))
             else:
                 msg = f"Cannot process relationship {termRef}, {r}, {rel_term}."

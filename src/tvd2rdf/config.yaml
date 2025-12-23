@@ -1,0 +1,57 @@
+---
+namespaces:
+  dcterms: http://purl.org/dc/terms/
+  owl: http://www.w3.org/2002/07/owl#
+  rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+  sdo: https://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
+
+fields map:
+  all:
+    type: rdfs:type
+    uri: URIRef
+    notation: skos:notation
+    usage: skos:skopeNote
+    comment: skos:note
+    relatedTerm: rdf:object
+    relationship: rdf:predicate
+  classes:
+    label: rdfs:label
+    definition: rdfs:comment
+  properties:
+    label: rdfs:label
+    definition: rdfs:comment
+    domainIncludes: sdo.domainIncludes
+    rangeIncludes: sdo.rangeIncludes
+  concept schemes:
+    label: dcterms:title
+    definition: dcterms:description
+  concepts:
+    label: skos:prefLabel
+    definition: skos:definition
+
+relationships map:
+  broader: skos:broader
+  broadMatch: skos:broadMatch
+  closeMatch: skos:closeMatch
+  hasTopConcept: skos:hasTopConcept
+  inScheme: skos:inScheme
+  narrower: skos:narrower
+  narrowMatch: skos:narrowMatch
+  topConceptOf: skos:topConceptOf
+
+types map:
+  Property: rdf:Property
+  Class: rdfs:Class
+  Ontology: owl:Ontology
+  Concept Scheme: skos:ConceptScheme
+  Concept: skos:Concept
+
+splitters: ",\n|;\n|\n|,|;" # chars used to separate multiple entries in a cell.
+
+serialization order: owl:Ontology
+  rdfs:Class
+  rdf:Property
+  skos:ConceptScheme
+  skos:Concept
